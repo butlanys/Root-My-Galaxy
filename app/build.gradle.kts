@@ -3,9 +3,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Feed source and NDK are overridable for local/fork builds:
+//   ./gradlew :app:assembleDebug -PfeedRepo=butlanys/Root-My-Galaxy-Payloads -PfeedRef=main
+val feedRepo = (project.findProperty("feedRepo") as String?) ?: "BuSung-dev/Root-My-Galaxy-Payloads"
+val feedRef = (project.findProperty("feedRef") as String?) ?: "main"
+val ndkVersionOverride = (project.findProperty("ndkVersion") as String?) ?: "28.2.13676358"
+
 android {
     namespace = "dev.busung.s25uroot"
     compileSdk = 37
+    ndkVersion = ndkVersionOverride
 
     defaultConfig {
         applicationId = "dev.busung.s25uroot"
@@ -14,6 +21,9 @@ android {
         versionCode = 13
         versionName = "0.2.65"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "FEED_REPO", "\"$feedRepo\"")
+        buildConfigField("String", "FEED_REF", "\"$feedRef\"")
 
         ndk {
             abiFilters += "arm64-v8a"

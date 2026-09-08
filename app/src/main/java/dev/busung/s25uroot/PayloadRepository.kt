@@ -25,9 +25,16 @@ class PayloadRepository(private val context: Context) {
         ) }
     }
 
-    fun resolveTarget(snapshot: DeviceSnapshot): TargetProfile = loadTargets()
-        .firstOrNull { it.matches(snapshot) }
+    fun resolveTarget(snapshot: DeviceSnapshot): TargetProfile {
+        val targets = loadTargets()
+        // Prefer an exact full-kernel-release match so regional builds that share
+        // a model and the three-part kernel version (e.g. SM-S9360 ZCS vs ZHS)
+        // resolve to the correct profile; fall back to the legacy three-part match.
+        return targets.firstOrNull {
+            it.matchesDevice(snapshot) && snapshot.kernelRelease in it.kernelVersions
+        } ?: targets.firstOrNull { it.matches(snapshot) }
         ?: error(context.getString(R.string.repo_no_profile))
+    }
 
     fun resolveTarget(profileId: String): TargetProfile = loadTargets()
         .firstOrNull { it.profileId == profileId }
@@ -102,8 +109,13 @@ class PayloadRepository(private val context: Context) {
     private fun rawUrl(commit: String, path: String) = "$RAW_REPOSITORY/$commit/$path"
 
     private fun pinArtifactUrl(url: String, commit: String): String {
-        require(url.startsWith(MUTABLE_RAW_PREFIX)) { context.getString(R.string.repo_url_invalid) }
-        return "$RAW_REPOSITORY/$commit/${url.removePrefix(MUTABLE_RAW_PREFIX)}"
+        // Accept any GitHub raw artifact path and re-pin it to the configured
+        // feed repository at the resolved commit. This keeps the manifest
+        // identical for the upstream feed and for forks that serve the same
+        // artifacts under a different owner.
+        val path = RAW_ARTIFACT_RE.find(url)?.groupValues?.get(1)
+            ?: throw IllegalArgumentException(context.getString(R.string.repo_url_invalid))
+        return "$RAW_REPOSITORY/$commit/$path"
     }
 
     private fun downloadBytes(url: String, maximum: Int): ByteArray {
@@ -136,11 +148,12 @@ class PayloadRepository(private val context: Context) {
         }
 
     companion object {
-        private const val COMMIT_API_URL =
-            "https://api.github.com/repos/BuSung-dev/Root-My-Galaxy-Payloads/git/ref/heads/main"
-        private const val RAW_REPOSITORY =
-            "https://raw.githubusercontent.com/BuSung-dev/Root-My-Galaxy-Payloads"
-        private const val MUTABLE_RAW_PREFIX = "$RAW_REPOSITORY/main/"
+        private val COMMIT_API_URL =
+            "https://api.github.com/repos/${BuildConfig.FEED_REPO}/git/ref/heads/${BuildConfig.FEED_REF}"
+        private val RAW_REPOSITORY =
+            "https://raw.githubusercontent.com/${BuildConfig.FEED_REPO}"
+        private val RAW_ARTIFACT_RE =
+            Regex("^https://raw\\.githubusercontent\\.com/[^/]+/[^/]+/[^/]+/(.+)$")
         private const val MAX_COMMIT_RESPONSE_BYTES = 16 * 1024
         private const val MAX_MANIFEST_BYTES = 256 * 1024
     }

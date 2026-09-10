@@ -181,7 +181,16 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                     }
                     appendLog(app.getString(R.string.log_shizuku_permission))
                 }
-                setPhase(InstallPhase.Checking, app.getString(R.string.status_checking_github))
+                setPhase(
+                    InstallPhase.Checking,
+                    app.getString(
+                        if (BuildConfig.FEED_LOCAL) {
+                            R.string.status_checking_local
+                        } else {
+                            R.string.status_checking_github
+                        },
+                    ),
+                )
                 val profile = if (profileId == null) {
                     repository.resolveTarget(DeviceSnapshot.current())
                 } else {
@@ -190,7 +199,16 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 appendLog(app.getString(R.string.log_profile, profile.profileId))
                 updateHistoryProfile(profile.profileId)
 
-                setPhase(InstallPhase.Downloading, app.getString(R.string.status_downloading_payload))
+                setPhase(
+                    InstallPhase.Downloading,
+                    app.getString(
+                        if (BuildConfig.FEED_LOCAL) {
+                            R.string.status_preparing_payload
+                        } else {
+                            R.string.status_downloading_payload
+                        },
+                    ),
+                )
                 val payloads = repository.download(profile) { appendLog("[*] $it") }
                 appendLog(app.getString(R.string.log_download_verified))
 

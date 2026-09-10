@@ -4,7 +4,9 @@ import android.content.Context
 import android.system.Os
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import org.json.JSONObject
@@ -17,6 +19,13 @@ data class VerifiedPayloads(
 
 class PayloadRepository(private val context: Context) {
     fun loadTargets(): List<TargetProfile> {
+        if (BuildConfig.FEED_LOCAL) {
+            val manifestBytes = readAsset(
+                "$LOCAL_ASSET_ROOT/support/targets-v3.json",
+                MAX_MANIFEST_BYTES,
+            )
+            return SupportManifest.parse(manifestBytes).targets
+        }
         val commit = resolveMainCommit()
         val manifestBytes = downloadBytes(rawUrl(commit, "support/targets-v3.json"), MAX_MANIFEST_BYTES)
         return SupportManifest.parse(manifestBytes).targets.map { profile -> profile.copy(
@@ -65,8 +74,47 @@ class PayloadRepository(private val context: Context) {
         label: String,
         onProgress: (String) -> Unit,
     ): File {
-        onProgress(context.getString(R.string.repo_downloading, label))
+        onProgress(
+            context.getString(
+                if (BuildConfig.FEED_LOCAL) R.string.repo_staging else R.string.repo_downloading,
+                label,
+            ),
+        )
         val temporary = File(destination.parentFile, "${destination.name}.part")
+        if (BuildConfig.FEED_LOCAL) {
+            copyBundledArtifact(artifact, temporary, label)
+        } else {
+            fetchRemoteArtifact(artifact, temporary, label)
+        }
+        if (destination.exists()) destination.delete()
+        require(temporary.renameTo(destination)) {
+            context.getString(R.string.repo_finalize_failed, label)
+        }
+        onProgress(context.getString(R.string.repo_verified, label))
+        return destination
+    }
+
+    private fun copyBundledArtifact(artifact: RemoteArtifact, temporary: File, label: String) {
+        var total = 0L
+        openAsset(bundledAssetPath(artifact.url)).use { input ->
+            FileOutputStream(temporary).use { output ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    require(total <= artifact.size) {
+                        context.getString(R.string.repo_size_exceeded, label)
+                    }
+                    output.write(buffer, 0, count)
+                }
+                output.fd.sync()
+            }
+        }
+        require(total == artifact.size) { context.getString(R.string.repo_incomplete, label) }
+    }
+
+    private fun fetchRemoteArtifact(artifact: RemoteArtifact, temporary: File, label: String) {
         val connection = open(artifact.url)
         require(connection.contentLengthLong == -1L || connection.contentLengthLong == artifact.size) {
             context.getString(R.string.repo_size_mismatch, label)
@@ -89,12 +137,6 @@ class PayloadRepository(private val context: Context) {
         }
         connection.disconnect()
         require(total == artifact.size) { context.getString(R.string.repo_incomplete, label) }
-        if (destination.exists()) destination.delete()
-        require(temporary.renameTo(destination)) {
-            context.getString(R.string.repo_finalize_failed, label)
-        }
-        onProgress(context.getString(R.string.repo_verified, label))
-        return destination
     }
 
     private fun resolveMainCommit(): String {
@@ -109,12 +151,14 @@ class PayloadRepository(private val context: Context) {
     private fun rawUrl(commit: String, path: String) = "$RAW_REPOSITORY/$commit/$path"
 
     private fun pinArtifactUrl(url: String, commit: String): String {
-        // Accept any GitHub raw artifact path and re-pin it to the configured
-        // feed repository at the resolved commit. This keeps the manifest
-        // identical for the upstream feed and for forks that serve the same
-        // artifacts under a different owner.
-        val path = RAW_ARTIFACT_RE.find(url)?.groupValues?.get(1)
-            ?: throw IllegalArgumentException(context.getString(R.string.repo_url_invalid))
+        // Accept a GitHub raw URL or a LAN feed URL and re-pin it to the
+        // configured feed base at the resolved commit. The path after
+        // "/<ref>/" is preserved, so the manifest can keep upstream URLs.
+        val marker = "/${BuildConfig.FEED_REF}/"
+        val index = url.indexOf(marker)
+        require(index >= 0) { context.getString(R.string.repo_url_invalid) }
+        val path = url.substring(index + marker.length)
+        require(path.isNotBlank()) { context.getString(R.string.repo_url_invalid) }
         return "$RAW_REPOSITORY/$commit/$path"
     }
 
@@ -137,6 +181,47 @@ class PayloadRepository(private val context: Context) {
         return bytes
     }
 
+    /**
+     * Maps a manifest artifact URL to its bundled asset. Local builds use
+     * `local://<path>`; a GitHub-style URL is accepted too so a manifest can
+     * be swapped in without rewriting every artifact entry.
+     */
+    private fun bundledAssetPath(url: String): String {
+        val relative = if (url.startsWith(LOCAL_URL_SCHEME)) {
+            url.removePrefix(LOCAL_URL_SCHEME)
+        } else {
+            val marker = "/${BuildConfig.FEED_REF}/"
+            val index = url.indexOf(marker)
+            require(index >= 0) { context.getString(R.string.repo_url_invalid) }
+            url.substring(index + marker.length)
+        }
+        require(relative.isNotBlank() && !relative.split('/').contains("..")) {
+            context.getString(R.string.repo_url_invalid)
+        }
+        return "$LOCAL_ASSET_ROOT/$relative"
+    }
+
+    private fun openAsset(path: String): InputStream = try {
+        context.assets.open(path)
+    } catch (_: FileNotFoundException) {
+        error(context.getString(R.string.repo_asset_missing, path))
+    }
+
+    private fun readAsset(path: String, maximum: Int): ByteArray =
+        openAsset(path).use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                require(output.size() + count <= maximum) {
+                    context.getString(R.string.repo_response_too_large)
+                }
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        }
+
     private fun open(url: String): HttpURLConnection =
         (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
@@ -148,12 +233,10 @@ class PayloadRepository(private val context: Context) {
         }
 
     companion object {
-        private val COMMIT_API_URL =
-            "https://api.github.com/repos/${BuildConfig.FEED_REPO}/git/ref/heads/${BuildConfig.FEED_REF}"
-        private val RAW_REPOSITORY =
-            "https://raw.githubusercontent.com/${BuildConfig.FEED_REPO}"
-        private val RAW_ARTIFACT_RE =
-            Regex("^https://raw\\.githubusercontent\\.com/[^/]+/[^/]+/[^/]+/(.+)$")
+        private const val LOCAL_ASSET_ROOT = "feed"
+        private const val LOCAL_URL_SCHEME = "local://"
+        private val COMMIT_API_URL = BuildConfig.FEED_COMMIT_API
+        private val RAW_REPOSITORY = BuildConfig.FEED_RAW_BASE
         private const val MAX_COMMIT_RESPONSE_BYTES = 16 * 1024
         private const val MAX_MANIFEST_BYTES = 256 * 1024
     }

@@ -96,7 +96,9 @@
     <string name="status_not_installed">Not installed</string>
     <string name="status_support_failed">Support check failed</string>
     <string name="status_checking_github">Checking GitHub support manifest</string>
+    <string name="status_checking_local">Reading bundled payload manifest</string>
     <string name="status_downloading_payload">Downloading payloads</string>
+    <string name="status_preparing_payload">Preparing bundled payloads</string>
     <string name="status_exploit_running">Running kernel exploit</string>
     <string name="status_ksu_loading">Late-loading KernelSU</string>
     <string name="status_install_failed">Installation failed</string>
@@ -121,6 +123,7 @@
     <string name="artifact_kernelsu">KernelSU</string>
     <string name="repo_no_profile">No compatible payload supports this model and kernel version</string>
     <string name="repo_downloading">Downloading %1$s</string>
+    <string name="repo_staging">Preparing %1$s</string>
     <string name="repo_size_mismatch">%1$s size does not match the support manifest</string>
     <string name="repo_size_exceeded">%1$s exceeded the declared size</string>
     <string name="repo_incomplete">%1$s download is incomplete</string>
@@ -128,6 +131,7 @@
     <string name="repo_verified">%1$s verified</string>
     <string name="repo_commit_invalid">GitHub returned an invalid commit SHA</string>
     <string name="repo_url_invalid">The artifact repository is not allowed</string>
+    <string name="repo_asset_missing">Bundled payload file is missing: %1$s</string>
     <string name="repo_response_too_large">The response exceeded its size limit</string>
     <string name="open_github">Open GitHub</string>
     <string name="github_card_title">Explore Root My Galaxy</string>

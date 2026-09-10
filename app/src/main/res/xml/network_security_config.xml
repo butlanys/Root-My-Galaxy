@@ -5,5 +5,7 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">127.0.0.1</domain>
         <domain includeSubdomains="false">localhost</domain>
+        <!-- LAN feed host (tools/feed_server.py); update if the host IP changes. -->
+        <domain includeSubdomains="false">192.168.3.247</domain>
     </domain-config>
 </network-security-config>

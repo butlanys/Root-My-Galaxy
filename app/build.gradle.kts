@@ -5,8 +5,16 @@ plugins {
 
 // Feed source and NDK are overridable for local/fork builds:
 //   ./gradlew :app:assembleDebug -PfeedRepo=butlanys/Root-My-Galaxy-Payloads -PfeedRef=main
+// Local fixed-payload builds bundle app/src/main/assets/feed and never touch
+// the network; this is the default for this fork. Build against the remote
+// feed (GitHub or the tools/feed_server.py LAN feed) with -PfeedLocal=false.
+val feedLocal = (project.findProperty("feedLocal") as String?)?.toBoolean() ?: true
 val feedRepo = (project.findProperty("feedRepo") as String?) ?: "BuSung-dev/Root-My-Galaxy-Payloads"
 val feedRef = (project.findProperty("feedRef") as String?) ?: "main"
+val feedCommitApi = (project.findProperty("feedCommitApi") as String?)
+    ?: "https://api.github.com/repos/$feedRepo/git/ref/heads/$feedRef"
+val feedRawBase = (project.findProperty("feedRawBase") as String?)
+    ?: "https://raw.githubusercontent.com/$feedRepo"
 val ndkVersionOverride = (project.findProperty("ndkVersion") as String?) ?: "28.2.13676358"
 
 android {
@@ -24,6 +32,9 @@ android {
 
         buildConfigField("String", "FEED_REPO", "\"$feedRepo\"")
         buildConfigField("String", "FEED_REF", "\"$feedRef\"")
+        buildConfigField("String", "FEED_COMMIT_API", "\"$feedCommitApi\"")
+        buildConfigField("String", "FEED_RAW_BASE", "\"$feedRawBase\"")
+        buildConfigField("boolean", "FEED_LOCAL", feedLocal.toString())
 
         ndk {
             abiFilters += "arm64-v8a"

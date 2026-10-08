@@ -2,55 +2,17 @@
   "schemaVersion": 3,
   "payloads": [
     {
-      "payloadId": "pa1q-S9310ZHSDCZH1",
-      "displayName": "Galaxy S25 | Kernel 6.6.98 (S9310ZHSDCZH1)",
-      "models": [
-        "SM-S9310"
-      ],
-      "kernelVersions": [
-        "6.6.98",
-        "6.6.98-android15-8-pd6ff1cd-abogkiS9310ZHSDCZH1-4k"
-      ],
-      "exploit": {
-        "url": "local://artifacts/pa1q-S9310ZHSDCZH1/cve-2026-43499-app.so",
-        "size": 126624
-      },
-      "kernelsu": {
-        "url": "local://kernelsu/ksud-s25u-kdp",
-        "size": 6407096
-      }
-    },
-    {
-      "payloadId": "pa2q-S9360ZHSDCZH1",
-      "displayName": "Galaxy S25+ | Kernel 6.6.98 (S9360ZHSDCZH1)",
+      "payloadId": "pa2q-S9360ZHUDDZIF",
+      "displayName": "Galaxy S25+ | Kernel 6.6.127 (S9360ZHUDDZIF)",
       "models": [
         "SM-S9360"
       ],
       "kernelVersions": [
-        "6.6.98",
-        "6.6.98-android15-8-pd6ff1cd-abogkiS9360ZHSDCZH1-4k"
+        "6.6.127",
+        "6.6.127-android15-8-p33f4ffe-abogkiS9360ZHUDDZIF-4k"
       ],
       "exploit": {
-        "url": "local://artifacts/pa2q-S9360ZHSDCZH1/cve-2026-43499-app.so",
-        "size": 126624
-      },
-      "kernelsu": {
-        "url": "local://kernelsu/ksud-s25u-kdp",
-        "size": 6407096
-      }
-    },
-    {
-      "payloadId": "pa2q-S9360ZHSCCZG1",
-      "displayName": "Galaxy S25+ | Kernel 6.6.98 (S9360ZHSCCZG1)",
-      "models": [
-        "SM-S9360"
-      ],
-      "kernelVersions": [
-        "6.6.98",
-        "6.6.98-android15-8-pd6ff1cd-abogkiS9360ZHSCCZG1-4k"
-      ],
-      "exploit": {
-        "url": "local://artifacts/pa2q-S9360ZHSCCZG1/cve-2026-43499-app.so",
+        "url": "local://artifacts/pa2q-S9360ZHUDDZIF/cve-2026-43499-app.so",
         "size": 126624
       },
       "kernelsu": {

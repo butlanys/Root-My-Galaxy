@@ -2,17 +2,17 @@
   "schemaVersion": 3,
   "payloads": [
     {
-      "payloadId": "pa2q-S9360ZHUDDZIF",
-      "displayName": "Galaxy S25+ | Kernel 6.6.127 (S9360ZHUDDZIF)",
+      "payloadId": "pa2q-S9360ZHSEDZJ1",
+      "displayName": "Galaxy S25+ | Kernel 6.6.127 (S9360ZHSEDZJ1)",
       "models": [
         "SM-S9360"
       ],
       "kernelVersions": [
         "6.6.127",
-        "6.6.127-android15-8-p33f4ffe-abogkiS9360ZHUDDZIF-4k"
+        "6.6.127-android15-8-p87b1ce1-abogkiS9360ZHSEDZJ1-4k"
       ],
       "exploit": {
-        "url": "local://artifacts/pa2q-S9360ZHUDDZIF/cve-2026-43499-app.so",
+        "url": "local://artifacts/pa2q-S9360ZHSEDZJ1/cve-2026-43499-app.so",
         "size": 126624
       },
       "kernelsu": {

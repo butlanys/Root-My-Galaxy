@@ -151,9 +151,11 @@ class PayloadRepository(private val context: Context) {
     private fun rawUrl(commit: String, path: String) = "$RAW_REPOSITORY/$commit/$path"
 
     private fun pinArtifactUrl(url: String, commit: String): String {
-        // Accept a GitHub raw URL or a LAN feed URL and re-pin it to the
-        // configured feed base at the resolved commit. The path after
-        // "/<ref>/" is preserved, so the manifest can keep upstream URLs.
+        // Release assets are immutable and already versioned by their tag, so
+        // they are used verbatim. Everything else is re-pinned to the
+        // configured feed base at the resolved commit, preserving the path
+        // after "/<ref>/" so the manifest can keep upstream raw URLs.
+        if (url.contains("/releases/download/")) return url
         val marker = "/${BuildConfig.FEED_REF}/"
         val index = url.indexOf(marker)
         require(index >= 0) { context.getString(R.string.repo_url_invalid) }
